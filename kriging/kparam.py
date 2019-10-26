@@ -1,31 +1,42 @@
 import numpy as np
+from scipy.spatial.distance import pdist, cdist
+
+from .utilities import SCC
 
 
 class Kparam:
 
-    """Kriging parameters
-    Args:
-    Attributes:
+    """
+    Kriging equation parameters
     """
 
-    def __init__(self):
-       
-        self.inputs = None
-        self.outputs = None
-        self.method = None
-        self.theta = None
-        self.p = None
-        self.nugget = None
-        self.order = None
-        self.lb = None
-        self.ub = None
-        self.beta = None
-        self.sigma2 = None
-        self.K = None
-        self.mse = None
+    def __init__(self, variogram: "kriging.Variogram"=None, likelihood: "kriging.Likelihood"=None):
+        self.variogram = variogram
+        self.likelihood = likelihood
+        self.R_mat = self._get_R_mat()
+        self.K_mat = self._get_K_mat()
+        self.beta = self._get_beta()
 
-    def fit(self):
-        pass
+    def _get_R_mat(self) -> np.array:
+        normalized_xs = self.variogram.normalized_xs 
+        theta = self.variogram.theoretical.theta
+        p = self.variogram.theoretical.p
+        hs_mat = cdist(normalized_xs, normalized_xs)
+        R = SCC.gaussian_dace(hs_mat.reshape((-1,1)), theta, p)
+        R_mat = R.reshape(hs_mat.shape)
+        return R_mat
 
-    def plot(self):
-        pass
+    def _get_K_mat(self) -> np.array:
+        K_mat = np.pad(self.R_mat, ((0,1), (0,1)), mode='constant', constant_values=1.0)
+        K_mat[-1, -1] = 0.0
+        return K_mat
+
+    def _get_beta(self) -> np.array:
+        ys = self.variogram.ys
+        F = np.ones((1, ys.shape[0]))
+        R_mat_inv = np.linalg.inv(self.R_mat)
+        a = np.dot(F, R_mat_inv)
+        b = np.dot(a, F.T)
+        beta = np.dot(a, ys) / b
+        return beta[0, 0]
+        
