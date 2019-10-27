@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.spatial.distance import pdist, cdist
+from scipy.spatial.distance import cdist
 
 from .utilities import SCC
 
