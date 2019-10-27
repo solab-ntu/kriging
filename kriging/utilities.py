@@ -24,35 +24,41 @@ class SCC:
 
 def predict(xs_new: np.array, kparam: "kriging.Kparam") -> tuple:
 
+    """
+    Isotropic variogram kriging
+    """
+
     theta = kparam.variogram.theoretical.theta
     p = kparam.variogram.theoretical.p
     sigma2 = kparam.variogram.theoretical.sigma2
 
     lb = kparam.variogram.lb
     ub = kparam.variogram.ub
-    xs = kparam.variogram.normalized_xs
+    nxs = kparam.variogram.normalized_xs
     ys = kparam.variogram.ys
-    n, d = xs.shape
-    
-    xs_new = (xs_new - lb) / (ub - lb)
-    ys_new = [] # mean
-    vs_new = [] # variance
+    nxs_new = (xs_new - lb) / (ub - lb)
 
-    for x_new in xs_new:
+    n, d = nxs.shape
+    m = nxs_new.shape[0]
 
-        hs_new = cdist(xs, x_new.reshape((1,d)))
-        rx = SCC.gaussian_dace(hs_new, theta, p)
+    ys_new = [] # means
+    vs_new = [] # variances
 
-        _ = np.concatenate((rx.T, np.ones((1, 1))), axis=1)
-        K_lambda = np.dot(_, np.linalg.inv(kparam.K_mat))
+    for nx_new in nxs_new:
 
-        _ = np.concatenate((ys, np.ones((1, 1))), axis=0)
-        y_new = np.dot(K_lambda, _)
+        hs_new = cdist(nxs, nx_new.reshape((1,d))) # (n, 1)
+        rx = SCC.gaussian_dace(hs_new, theta, p) # (n, 1)
 
-        _ = np.concatenate((rx, np.ones((1, 1))), axis=0)
-        v_new = sigma2 * (1 - np.dot(K_lambda, _))
+        _ = np.concatenate((rx.T, np.ones((1,1))), axis=1) # (1, n+1)
+        K_lambda = np.dot(_, np.linalg.inv(kparam.K_mat)) # (1, n+1)*(n+1, n+1) = (1, n+1)
 
-        ys_new.append(y_new[0, 0])
-        vs_new.append(v_new[0, 0])
+        _ = np.concatenate((ys, np.ones((1,1))), axis=0) # (n+1, 1)
+        y_new = np.dot(K_lambda, _) # (1, n+1)*(n+1, 1) = (1, 1)
 
-    return ys_new, vs_new
+        _ = np.concatenate((rx, np.ones((1,1))), axis=0) # (n+1, 1)
+        v_new = sigma2 * (1 - np.dot(K_lambda, _)) # (1, n+1)*(n+1, 1) = (1, 1)
+
+        ys_new.append(y_new[0,0])
+        vs_new.append(v_new[0,0])
+
+    return np.array(ys_new), np.array(vs_new)

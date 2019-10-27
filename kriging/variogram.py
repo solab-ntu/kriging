@@ -108,7 +108,7 @@ class Theoretical:
             self.sigma2, self.theta = x
             obj = 0
             for exp_h, exp_gamma in zip(self.experimental.hs, self.experimental.gammas):
-                if not np.isnan(exp_gamma):
+                if not np.isnan(exp_gamma) and exp_h < 1.0: # dont fit long-distance h, filter it by exp_h < 1.0
                     obj += (self._get_gammas(np.array(exp_h)) - exp_gamma)**2
             return obj
 
