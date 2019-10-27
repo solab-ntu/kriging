@@ -11,7 +11,7 @@ if __name__ == "__main__":
 
     lb = np.array([-1, -1])
     ub = np.array([1, 1])
-    num = 10
+    num = 5
 
     x1 = np.linspace(lb[0], ub[0], num)
     x2 = np.linspace(lb[1], ub[1], num)
@@ -27,7 +27,7 @@ if __name__ == "__main__":
 
     # -- plot
 
-    num = 40
+    num = 50
     x1 = np.linspace(lb[0], ub[0], num)
     x2 = np.linspace(lb[1], ub[1], num)
     x1g, x2g = np.meshgrid(x1, x2)
