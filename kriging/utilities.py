@@ -10,7 +10,10 @@ class SCC:
 
     @staticmethod
     def gaussian_dace(hs: np.array, theta: float, p: float) -> np.array:
-        R = np.exp(-theta*(hs**p))
+        if hs.shape[1] > 1: # anisotropic
+            R = np.exp(-np.sum(theta*(hs**p), axis=1))
+        else: # isotropic
+            R = np.exp(-theta*(hs**p))
         return R
 
     @staticmethod
