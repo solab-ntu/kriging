@@ -20,7 +20,7 @@ class SCC:
     @staticmethod
     def matern_cubic(hs: np.array, theta: float) -> np.array:
         pass
-    
+
 
 """
 The following code is the single-output version of predict() function:
@@ -57,6 +57,7 @@ def predict(xs_new: np.array, kparam: "kriging.Kparam") -> tuple:
     theta = kparam.variogram.theoretical.theta
     p = kparam.variogram.theoretical.p
     sigma2 = kparam.variogram.theoretical.sigma2
+    nugget = kparam.variogram.theoretical.nugget
 
     lb = kparam.variogram.lb
     ub = kparam.variogram.ub
@@ -75,8 +76,9 @@ def predict(xs_new: np.array, kparam: "kriging.Kparam") -> tuple:
     nxs_new_mat = np.tile(nxs_new_mat, reps=(1,n,1)) # (m, n, d)
 
     hs_new_mat = np.linalg.norm(nxs_mat-nxs_new_mat, axis=2).reshape((m,n,1)) # (m, n, 1)
-    
+
     rx = SCC.gaussian_dace(hs_new_mat, theta, p) # (m, n, 1)
+    rx = (1.0-nugget)*rx
     rx_plus_one = np.concatenate((rx, np.ones((m,1,1))), axis=1) # (m, n+1, 1)
     rxt = np.transpose(rx, axes=(0,2,1)) # (m, 1, n)
     rxt_plus_one = np.concatenate((rxt, np.ones((m,1,1))), axis=2) # (m, 1, n+1)

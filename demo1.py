@@ -5,8 +5,8 @@ import kriging
 
 if __name__ == "__main__":
 
-    xs = np.array([0, 1, 2, 3, 4, 5, 6]).reshape((-1, 1))
-    ys = np.array([0, 1, 2, 1, 4, 7, 6]).reshape((-1, 1))
+    xs = np.array([0, 1, 2, 3, 4, 5, 6, 6, 6, 0, 0]).reshape((-1, 1))
+    ys = np.array([0, 1, 2, 1, 4, 7, 6, 7, 5.9, -0.1, 0.1]).reshape((-1, 1))
 
     lb = np.array([0])
     ub = np.array([6])
@@ -21,7 +21,7 @@ if __name__ == "__main__":
 
     xs_new = np.reshape(np.linspace(start=0, stop=6, num=50, endpoint=True), newshape=(-1,1))
     ys_new, vs_new = kriging.predict(xs_new, kparam)
-    
+
     fig = plt.figure(figsize=(6.4*2, 4.8))
     ax1 = fig.add_subplot(121)
     ax1.plot(xs_new, ys_new)

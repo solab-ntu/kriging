@@ -18,12 +18,14 @@ class Kparam:
         self.beta = self._get_beta()
 
     def _get_R_mat(self) -> np.array:
-        normalized_xs = self.variogram.normalized_xs 
+        normalized_xs = self.variogram.normalized_xs
         theta = self.variogram.theoretical.theta
         p = self.variogram.theoretical.p
+        nugget = self.variogram.theoretical.nugget
         hs_mat = cdist(normalized_xs, normalized_xs)
         R = SCC.gaussian_dace(hs_mat.reshape((-1,1)), theta, p)
         R_mat = R.reshape(hs_mat.shape)
+        R_mat = (1.0-nugget)*R_mat + nugget*np.eye(hs_mat.shape[0])
         return R_mat
 
     def _get_K_mat(self) -> np.array:
@@ -39,4 +41,3 @@ class Kparam:
         b = np.dot(a, F.T)
         beta = np.dot(a, ys) / b
         return beta[0, 0]
-        

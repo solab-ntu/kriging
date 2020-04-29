@@ -36,7 +36,7 @@ class Variogram:
 
 
 class Cloud:
-    
+
     """
     Empirical variogram
     """
@@ -49,7 +49,7 @@ class Cloud:
         fig = plt.gcf()
         ax = plt.gca()
         ax.scatter(self.hs, self.gammas, s=1, c="r", label='Empirical')
-        
+
 
 class Experimental:
 
@@ -64,7 +64,9 @@ class Experimental:
         self.gammas = self._get_gammas(nums)
 
     def _get_hs(self, nums: np.array) -> list:
-        return [(i+j)/2.0 for i, j in zip(nums[:-1], nums[1:])]
+        hs = [(i+j)/2.0 for i, j in zip(nums[:-1], nums[1:])]
+        hs.insert(0, 0.0)
+        return hs
 
     def _get_gammas(self, nums: np.array) -> list:
         gammas = []
@@ -76,6 +78,12 @@ class Experimental:
                 total = np.sum(self.cloud.gammas[cloud_filter])
                 gamma = total / count
             gammas.append(gamma)
+        gamma0 = 0.0
+        count = 0.0
+        for i in np.where(self.cloud.hs == 0.0)[0]:
+            gamma0 += self.cloud.gammas[i]
+            count += 1.0
+        gammas.insert(0, gamma0/count)
         return gammas
 
     def plot(self):
@@ -105,7 +113,8 @@ class Theoretical:
     def fit(self, fit_p: bool=False, fit_nugget: bool=False):
 
         def _get_fitting_obj(x):
-            self.sigma2, self.theta = x
+            self.sigma2, self.theta, self.nugget = x
+            # self.sigma2, self.theta = x
             obj = 0
             for exp_h, exp_gamma in zip(self.experimental.hs, self.experimental.gammas):
                 if not np.isnan(exp_gamma) and exp_h < 1.0: # dont fit long-distance h, filter it by exp_h < 1.0
@@ -115,11 +124,16 @@ class Theoretical:
         b_sigma2 = (0.01, 2*np.nanmax(self.experimental.gammas))
         b_theta = (0.01, 500)
         b_p = (0.01, 1.99)
-        b_nugget = (1e-12, np.nanmax(self.experimental.gammas))
+        # b_nugget = (1e-12, 2.0*self.experimental.gammas[0])
+        # b_nugget = (1e-12, 0.99)
+        b_nugget = (1e-12, 0.001)
 
-        bounds = [b_sigma2, b_theta]
-        res = differential_evolution(_get_fitting_obj, bounds)
-        self.sigma2, self.theta = res.x
+        bounds = [b_sigma2, b_theta, b_nugget]
+        # bounds = [b_sigma2, b_theta]
+        res = differential_evolution(func=_get_fitting_obj, bounds=bounds)
+        print(res)
+        self.sigma2, self.theta, self.nugget = res.x
+        # self.sigma2, self.theta = res.x
 
     def plot(self):
         fig = plt.gcf()
