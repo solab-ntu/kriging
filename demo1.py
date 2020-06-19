@@ -1,3 +1,7 @@
+"""
+1-d
+"""
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -5,8 +9,8 @@ import kriging
 
 if __name__ == "__main__":
 
-    xs = np.array([0, 1, 2, 3, 4, 5, 6, 6, 6, 0, 0]).reshape((-1, 1))
-    ys = np.array([0, 1, 2, 1, 4, 7, 6, 7, 5.9, -0.1, 0.1]).reshape((-1, 1))
+    xs = np.array([0, 1, 2, 3, 4, 5, 6]).reshape((-1, 1))
+    ys = np.array([0, 1, 2, 1, 4, 7, 6]).reshape((-1, 1))
 
     lb = np.array([0])
     ub = np.array([6])

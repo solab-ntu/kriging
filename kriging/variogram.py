@@ -3,7 +3,8 @@ import numpy as np
 from scipy.spatial.distance import pdist
 from scipy.optimize import differential_evolution
 
-from .utilities import SCC
+from .utilities import SCC, predict
+from .kparam import Kparam
 
 
 class Variogram:
@@ -22,12 +23,13 @@ class Variogram:
         self.experimental = Experimental(self.cloud)
         self.theoretical = Theoretical(self.experimental)
 
-    def plot(self):
+    def plot(self, cloud_enable: bool=False):
         fig = plt.figure(1)
         ax = fig.add_subplot(111)
-        self.cloud.plot()
         self.experimental.plot()
         self.theoretical.plot()
+        if cloud_enable:
+            self.cloud.plot()
         ax.set_xlabel("$h\ \mathrm{(normalized)}$")
         ax.set_ylabel("$\gamma(h)$")
         ax.set_title("Variogram")
@@ -43,6 +45,8 @@ class Cloud:
 
     def __init__(self, normalized_xs: np.array, ys: np.array):
         self.hs = pdist(normalized_xs, metric='euclidean') # normalized distance
+        self.hs_min = np.min(self.hs)
+        self.hs_max = np.max(self.hs)
         self.gammas = 0.5 * (pdist(ys, metric='euclidean')**2) # <== also call semivariogram ?
 
     def plot(self):
@@ -59,13 +63,12 @@ class Experimental:
 
     def __init__(self, cloud: Cloud, linspace_num: int=50):
         self.cloud = cloud
-        nums = np.linspace(start=0, stop=np.max(cloud.hs), num=linspace_num, endpoint=True)
+        nums = np.linspace(start=self.cloud.hs_min, stop=self.cloud.hs_max, num=linspace_num, endpoint=True)
         self.hs = self._get_hs(nums)
         self.gammas = self._get_gammas(nums)
 
     def _get_hs(self, nums: np.array) -> list:
         hs = [(i+j)/2.0 for i, j in zip(nums[:-1], nums[1:])]
-        hs.insert(0, 0.0)
         return hs
 
     def _get_gammas(self, nums: np.array) -> list:
@@ -78,12 +81,6 @@ class Experimental:
                 total = np.sum(self.cloud.gammas[cloud_filter])
                 gamma = total / count
             gammas.append(gamma)
-        gamma0 = 0.0
-        count = 0.0
-        for i in np.where(self.cloud.hs == 0.0)[0]:
-            gamma0 += self.cloud.gammas[i]
-            count += 1.0
-        gammas.insert(0, gamma0/count)
         return gammas
 
     def plot(self):
@@ -110,30 +107,20 @@ class Theoretical:
         gammas = self.nugget + self.sigma2*(1.0-R)
         return gammas
 
-    def fit(self, fit_p: bool=False, fit_nugget: bool=False):
+    def fit(self):
 
-        def _get_fitting_obj(x):
-            self.sigma2, self.theta, self.nugget = x
-            # self.sigma2, self.theta = x
+        def _get_obj(x):
+            self.sigma2, self.theta = x
             obj = 0
             for exp_h, exp_gamma in zip(self.experimental.hs, self.experimental.gammas):
                 if not np.isnan(exp_gamma) and exp_h < 1.0: # dont fit long-distance h, filter it by exp_h < 1.0
                     obj += (self._get_gammas(np.array(exp_h)) - exp_gamma)**2
             return obj
 
-        b_sigma2 = (0.01, 2*np.nanmax(self.experimental.gammas))
-        b_theta = (0.01, 500)
-        b_p = (0.01, 1.99)
-        # b_nugget = (1e-12, 2.0*self.experimental.gammas[0])
-        # b_nugget = (1e-12, 0.99)
-        b_nugget = (1e-12, 0.001)
-
-        bounds = [b_sigma2, b_theta, b_nugget]
-        # bounds = [b_sigma2, b_theta]
-        res = differential_evolution(func=_get_fitting_obj, bounds=bounds)
-        print(res)
-        self.sigma2, self.theta, self.nugget = res.x
-        # self.sigma2, self.theta = res.x
+        b_sigma2 = (0.01, np.nanmax(self.experimental.gammas)*0.5)  # <=== limit sigma2
+        b_theta = (0.01, 1000)
+        res = differential_evolution(func=_get_obj, bounds=(b_sigma2, b_theta))
+        self.sigma2, self.theta = res.x
 
     def plot(self):
         fig = plt.gcf()
