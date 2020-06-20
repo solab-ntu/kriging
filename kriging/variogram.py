@@ -3,8 +3,7 @@ import numpy as np
 from scipy.spatial.distance import pdist
 from scipy.optimize import differential_evolution
 
-from .utilities import SCC, predict
-from .kparam import Kparam
+from ._SCC import SCC
 
 
 class Variogram:
@@ -26,10 +25,27 @@ class Variogram:
     def plot(self, cloud_enable: bool=False):
         fig = plt.figure(1)
         ax = fig.add_subplot(111)
+
+        # -- plot variogram
         self.experimental.plot()
         self.theoretical.plot()
         if cloud_enable:
             self.cloud.plot()
+
+        # -- text
+        sigma2 = self.theoretical.sigma2
+        theta = self.theoretical.theta
+        p = self.theoretical.p
+        nugget = self.theoretical.nugget
+
+        xl, xu = ax.get_xlim()
+        yl, yu = ax.get_ylim()
+        x = (xu + xl)/2.0
+        y = (yu + yl)/8.0
+        s = "sigma2={0}\ntheta={1}\np={2}\nnugget={3}".format(sigma2, theta, p, nugget)
+        ax.text(x=x, y=y, s=s)
+
+        # -- label
         ax.set_xlabel("$h\ \mathrm{(normalized)}$")
         ax.set_ylabel("$\gamma(h)$")
         ax.set_title("Variogram")
@@ -108,18 +124,9 @@ class Theoretical:
         return gammas
 
     def fit(self):
-
-        def _get_obj(x):
-            self.sigma2, self.theta = x
-            obj = 0
-            for exp_h, exp_gamma in zip(self.experimental.hs, self.experimental.gammas):
-                if not np.isnan(exp_gamma) and exp_h < 1.0: # dont fit long-distance h, filter it by exp_h < 1.0
-                    obj += (self._get_gammas(np.array(exp_h)) - exp_gamma)**2
-            return obj
-
-        b_sigma2 = (0.01, np.nanmax(self.experimental.gammas)*0.5)  # <=== limit sigma2
-        b_theta = (0.01, 1000)
-        res = differential_evolution(func=_get_obj, bounds=(b_sigma2, b_theta))
+        b_sigma2 = (0.01, np.nanmax(self.experimental.gammas)*1.0)  # <=== limit sigma2
+        b_theta = (0.01, 500)
+        res = differential_evolution(func=self._get_fit_obj, bounds=(b_sigma2, b_theta))
         self.sigma2, self.theta = res.x
 
     def plot(self):
@@ -131,3 +138,11 @@ class Theoretical:
 
     def __repr__(self):
         return "sigma2 = {0:.3f}\ntheta = {1:.3f}\np = {2:.3f}\nnugget = {3:.3f}".format(self.sigma2, self.theta, self.p, self.nugget)
+
+    def _get_fit_obj(self, x):
+        self.sigma2, self.theta = x
+        obj = 0
+        for exp_h, exp_gamma in zip(self.experimental.hs, self.experimental.gammas):
+            if not np.isnan(exp_gamma) and exp_h < 1.0: # dont fit long-distance h, filter it by exp_h < 1.0
+                obj += (self._get_gammas(np.array(exp_h)) - exp_gamma)**2
+        return obj
