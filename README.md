@@ -1,6 +1,6 @@
 # kriging
 
-The implementation of the Kriging model with Python3 by NTU ME SOLab.
+The implementation of the Kriging model by variogram fitting.
 
 ## Examples
 

@@ -36,7 +36,7 @@ if __name__ == "__main__":
     ys_new, vs_new = kriging.predict(xs_new, kparam)
 
     fig = plt.figure(figsize=(6.4*2, 4.8))
-    
+
     ax1 = fig.add_subplot(121)
     ct1 = ax1.contour(x1g, x2g, ys_new.reshape((num, num)), cmap=plt.cm.jet)
     ax1.scatter(xs[:,0], xs[:,1], marker="^", s=20, c="r")

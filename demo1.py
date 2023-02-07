@@ -21,7 +21,7 @@ if __name__ == "__main__":
 
     xs_new = np.reshape(np.linspace(start=0, stop=6, num=50, endpoint=True), newshape=(-1,1))
     ys_new, vs_new = kriging.predict(xs_new, kparam)
-    
+
     fig = plt.figure(figsize=(6.4*2, 4.8))
     ax1 = fig.add_subplot(121)
     ax1.plot(xs_new, ys_new)
